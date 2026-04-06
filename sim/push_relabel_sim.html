@@ -1,0 +1,219 @@
+<style>
+  .wrap {
+    font-family: sans-serif;
+    padding: 1rem 0;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .controls button {
+    padding: 6px 18px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .controls button:hover {
+    background: var(--color-background-secondary);
+  }
+
+  .step-label {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+
+  .msg {
+    font-size: 13px;
+    color: var(--color-text-primary);
+    margin-bottom: 0.75rem;
+    min-height: 20px;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    background: var(--color-background-primary);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+</style>
+
+<div class="wrap">
+  <div class="controls">
+    <button onclick="prev()">&#8592; Prev</button>
+    <button onclick="next()">Next &#8594;</button>
+    <button onclick="togglePlay()" id="playBtn">Play</button>
+    <span class="step-label" id="stepLabel">Step 0 / 0</span>
+  </div>
+  <div class="msg" id="msg"></div>
+  <svg viewBox="0 0 700 340" id="canvas"></svg>
+  <div class="legend">
+    <span><span class="dot" style="background:#639922"></span>Source / Sink</span>
+    <span><span class="dot" style="background:#378ADD"></span>Active (excess &gt; 0)</span>
+    <span><span class="dot" style="background:#888780"></span>Idle</span>
+    <span><span class="dot" style="background:#378ADD; opacity:0.4"></span>Flow on edge</span>
+  </div>
+</div>
+
+<script>
+  var nodes = [
+    { id: "S", x: 90, y: 170 },
+    { id: "A", x: 260, y: 90 },
+    { id: "B", x: 260, y: 250 },
+    { id: "C", x: 430, y: 170 },
+    { id: "T", x: 610, y: 170 }
+  ];
+  var edges = [
+    { u: "S", v: "A", cap: 12 },
+    { u: "S", v: "B", cap: 8 },
+    { u: "A", v: "C", cap: 5 },
+    { u: "B", v: "C", cap: 10 },
+    { u: "C", v: "T", cap: 15 }
+  ];
+
+  function cloneState(ns, es) {
+    return {
+      nodes: ns.map(function (n) { return Object.assign({}, n); }),
+      edges: es.map(function (e) { return Object.assign({}, e); })
+    };
+  }
+
+  function residual(u, v, es) {
+    var f = es.find(function (e) { return e.u === u && e.v === v; });
+    if (f) return f.cap - f.flow;
+    var b = es.find(function (e) { return e.v === u && e.u === v; });
+    if (b) return b.flow;
+    return 0;
+  }
+
+  function buildSteps() {
+    var steps = [];
+    var ns = nodes.map(function (n) { return Object.assign({}, n, { h: 0, e: 0 }); });
+    var es = edges.map(function (e) { return Object.assign({}, e, { flow: 0 }); });
+
+    steps.push({ state: cloneState(ns, es), msg: "Initial graph. All heights = 0, no flow." });
+
+    var s = ns.find(function (n) { return n.id === "S"; });
+    s.h = ns.length;
+    es.filter(function (e) { return e.u === "S"; }).forEach(function (e) {
+      e.flow = e.cap;
+      var v = ns.find(function (n) { return n.id === e.v; });
+      v.e += e.cap;
+      s.e -= e.cap;
+    });
+    steps.push({ state: cloneState(ns, es), msg: "Initialize preflow: h[S] = " + s.h + ", saturate all edges from S." });
+
+    var iters = 0;
+    while (iters < 200) {
+      iters++;
+      var active = ns.find(function (n) { return n.id !== "S" && n.id !== "T" && n.e > 0; });
+      if (!active) break;
+
+      var pushV = null, resCap = 0;
+      for (var i = 0; i < ns.length; i++) {
+        var r = residual(active.id, ns[i].id, es);
+        if (r > 0 && active.h === ns[i].h + 1) { pushV = ns[i]; resCap = r; break; }
+      }
+
+      if (pushV) {
+        var amt = Math.min(active.e, resCap);
+        var fwd = es.find(function (e) { return e.u === active.id && e.v === pushV.id; });
+        if (fwd) fwd.flow += amt;
+        else es.find(function (e) { return e.v === active.id && e.u === pushV.id; }).flow -= amt;
+        active.e -= amt;
+        pushV.e += amt;
+        steps.push({ state: cloneState(ns, es), msg: "Push: " + amt + " units from " + active.id + " \u2192 " + pushV.id + "." });
+      } else {
+        var minH = Infinity;
+        ns.forEach(function (v) { if (residual(active.id, v.id, es) > 0) minH = Math.min(minH, v.h); });
+        active.h = minH + 1;
+        steps.push({ state: cloneState(ns, es), msg: "Relabel: " + active.id + " height raised to " + active.h + "." });
+      }
+    }
+
+    var t = ns.find(function (n) { return n.id === "T"; });
+    steps.push({ state: cloneState(ns, es), msg: "Done. Max flow = " + t.e + " units at T." });
+    return steps;
+  }
+
+  var steps = buildSteps();
+  var idx = 0;
+  var timer = null;
+
+  function draw() {
+    var canvas = document.getElementById("canvas");
+    var st = steps[idx].state;
+    var ns = st.nodes, es = st.edges;
+
+    var defs = '<defs><marker id="arr" markerWidth="8" markerHeight="6" refX="22" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#B4B2A9"/></marker><marker id="arr-on" markerWidth="8" markerHeight="6" refX="22" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#378ADD"/></marker></defs>';
+
+    var edgeSVG = "";
+    es.forEach(function (e) {
+      var u = ns.find(function (n) { return n.id === e.u; });
+      var v = ns.find(function (n) { return n.id === e.v; });
+      var on = e.flow > 0;
+      var mx = Math.round((u.x + v.x) / 2), my = Math.round((u.y + v.y) / 2);
+      edgeSVG += '<line x1="' + u.x + '" y1="' + u.y + '" x2="' + v.x + '" y2="' + v.y + '" stroke="' + (on ? "#378ADD" : "#B4B2A9") + '" stroke-width="' + (on ? 2.5 : 1.5) + '" marker-end="url(#' + (on ? "arr-on" : "arr") + ')"/>';
+      edgeSVG += '<rect x="' + (mx - 14) + '" y="' + (my - 10) + '" width="28" height="18" rx="3" fill="var(--color-background-primary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>';
+      edgeSVG += '<text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle" font-size="11" fill="' + (on ? "#185FA5" : "#888780") + '">' + e.flow + '/' + e.cap + '</text>';
+    });
+
+    var nodeSVG = "";
+    ns.forEach(function (n) {
+      var isS = n.id === "S", isT = n.id === "T";
+      var hasEx = n.e > 0 && !isS && !isT;
+      var fill = isS || isT ? "#EAF3DE" : (hasEx ? "#E6F1FB" : "var(--color-background-primary)");
+      var stroke = isS || isT ? "#639922" : (hasEx ? "#378ADD" : "#B4B2A9");
+      var sw = isS || isT || hasEx ? 2 : 1;
+      var tc = isS || isT ? "#27500A" : (hasEx ? "#0C447C" : "#5F5E5A");
+      nodeSVG += '<circle cx="' + n.x + '" cy="' + n.y + '" r="24" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"/>';
+      nodeSVG += '<text x="' + n.x + '" y="' + (n.y - 4) + '" text-anchor="middle" font-size="13" font-weight="500" fill="' + tc + '">' + n.id + '</text>';
+      nodeSVG += '<text x="' + n.x + '" y="' + (n.y + 12) + '" text-anchor="middle" font-size="10" fill="' + tc + '">h:' + n.h + ' e:' + n.e + '</text>';
+    });
+
+    canvas.innerHTML = defs + edgeSVG + nodeSVG;
+    document.getElementById("msg").textContent = steps[idx].msg;
+    document.getElementById("stepLabel").textContent = "Step " + idx + " / " + (steps.length - 1);
+  }
+
+  function next() { if (idx < steps.length - 1) { idx++; draw(); } }
+  function prev() { if (idx > 0) { idx--; draw(); } }
+  function togglePlay() {
+    var btn = document.getElementById("playBtn");
+    if (timer) { clearInterval(timer); timer = null; btn.textContent = "Play"; }
+    else {
+      btn.textContent = "Pause";
+      timer = setInterval(function () {
+        if (idx < steps.length - 1) { idx++; draw(); }
+        else { clearInterval(timer); timer = null; btn.textContent = "Play"; }
+      }, 1200);
+    }
+  }
+
+  draw();
+</script>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Jarvis March</title>
+  <style>
+    body {
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    canvas {
+      background: white;
+      border: 2px solid #333;
+      display: block;
+      margin: 0 auto;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 8px 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+      min-height: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Jarvis March — Convex Hull</h2>
+  <p>Watch the algorithm wrap around the outermost points, step by step.</p>
+
+  <canvas id="canvas" width="500" height="400"></canvas>
+
+  <div id="status">Press Next Step to begin.</div>
+  <br>
+  <button onclick="nextStep()">Next Step</button>
+  <button onclick="restart()">Restart</button>
+
+  <script>
+    // Hardcoded points so it stays simple
+    var points = [
+      [100, 300], [150, 100], [250, 50], [350, 120],
+      [420, 280], [370, 360], [200, 370], [130, 200],
+      [220, 200], [300, 250], [180, 300], [310, 150]
+    ];
+
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
+
+    var hull = [];
+    var current = 0;
+    var candidate = 0;
+    var done = false;
+    var started = false;
+
+    // Find leftmost point to start
+    function getLeftmost() {
+      var idx = 0;
+      for (var i = 1; i < points.length; i++) {
+        if (points[i][0] < points[idx][0]) {
+          idx = i;
+        }
+      }
+      return idx;
+    }
+
+    // Cross product to check if B is more counterclockwise than candidate from A
+    function cross(A, B, C) {
+      return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw all points
+      for (var i = 0; i < points.length; i++) {
+        ctx.beginPath();
+        ctx.arc(points[i][0], points[i][1], 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#aaa";
+        ctx.fill();
+        ctx.fillStyle = "#333";
+        ctx.font = "11px Arial";
+        ctx.fillText(i, points[i][0] + 8, points[i][1] - 5);
+      }
+
+      // Draw hull edges so far
+      if (hull.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(points[hull[0]][0], points[hull[0]][1]);
+        for (var i = 1; i < hull.length; i++) {
+          ctx.lineTo(points[hull[i]][0], points[hull[i]][1]);
+        }
+        if (done) ctx.closePath();
+        ctx.strokeStyle = "blue";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Highlight hull points in blue
+      for (var i = 0; i < hull.length; i++) {
+        ctx.beginPath();
+        ctx.arc(points[hull[i]][0], points[hull[i]][1], 7, 0, Math.PI * 2);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+      }
+
+      // Highlight current point in green
+      if (!done) {
+        ctx.beginPath();
+        ctx.arc(points[current][0], points[current][1], 9, 0, Math.PI * 2);
+        ctx.fillStyle = "green";
+        ctx.fill();
+
+        // Highlight candidate in red
+        ctx.beginPath();
+        ctx.arc(points[candidate][0], points[candidate][1], 7, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+
+        // Draw line from current to candidate
+        ctx.beginPath();
+        ctx.moveTo(points[current][0], points[current][1]);
+        ctx.lineTo(points[candidate][0], points[candidate][1]);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function nextStep() {
+      if (done) return;
+
+      if (!started) {
+        // Initialize
+        current = getLeftmost();
+        hull = [current];
+        candidate = (current + 1) % points.length;
+        started = true;
+        document.getElementById("status").innerText = "Started at leftmost point (green). Finding best next point (red)...";
+        draw();
+        return;
+      }
+
+      // Check next point against current candidate
+      var checking = (candidate + 1) % points.length;
+
+      // Skip if checking == current
+      if (checking == current) {
+        checking = (checking + 1) % points.length;
+      }
+
+      // If we've wrapped through all points, lock in candidate
+      // Actually, we run through all n points one by one
+      // Simple approach: do full candidate search in one step
+      var best = (current + 1) % points.length;
+      for (var i = 0; i < points.length; i++) {
+        if (cross(points[current], points[best], points[i]) < 0) {
+          best = i;
+        }
+      }
+
+      candidate = best;
+      hull.push(candidate);
+
+      if (candidate == hull[0]) {
+        done = true;
+        document.getElementById("status").innerText = "Done! Hull has " + (hull.length - 1) + " points.";
+        draw();
+        return;
+      }
+
+      current = candidate;
+      candidate = (current + 1) % points.length;
+
+      document.getElementById("status").innerText =
+        "Added point " + hull[hull.length - 1] + " to hull. Now at green point, checking next...";
+
+      draw();
+    }
+
+    function restart() {
+      hull = [];
+      current = 0;
+      candidate = 0;
+      done = false;
+      started = false;
+      document.getElementById("status").innerText = "Press Next Step to begin.";
+      draw();
+    }
+
+    // Initial draw
+    draw();
+  </script>
+
+</body>
+
+</html>
