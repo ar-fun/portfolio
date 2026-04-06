@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Researcher | Portfolio</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: #fafafa;
+        }
+
+        header {
+            background: #fff;
+            padding: 3rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        header img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            border: 3px solid #3498db;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .counter {
+            font-size: 0.85rem;
+            color: #95a5a6;
+        }
+
+        nav {
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1.5rem 2rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e8e8e8;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #3498db;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #2980b9;
+        }
+
+        section {
+            max-width: 700px;
+            margin: 2.5rem auto;
+            padding: 0 2rem;
+            background: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: #34495e;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        img.project-img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 1rem;
+            border-radius: 4px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #95a5a6;
+            font-size: 0.9rem;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        @media (max-width: 600px) {
+            nav {
+                gap: 1rem;
+            }
+
+            section {
+                margin: 1.5rem auto;
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body onload="updateCounter()">
+
+<header>
+    <img src="headshot.jpg" class="headshot" alt="Headshot" />
+    <h1>Student Researcher</h1>
+    <p class="subtitle">Python • Flutter • Machine Learning • Problem Solver</p>
+    <p class="counter">Visits: <span id="visitCount">0</span></p>
+</header>
+
+<nav>
+    <a href="#simulations">Simulations</a>
+    <a href="#skills">Skills</a>
+    <a href="#education">Education</a>
+    <a href="#experience">Experience</a>
+    <a href="#projects">Projects</a>
+    <a href="#interests">Interests</a>
+</nav>
+
+<section id="simulations">
+    <h2>Algorithm Simulations</h2>
+    <ul>
+        <li><a href="sim/jarvis_march_simulation.html">Jarvis March Simulation</a></li>
+        <li><a href="sim/push_relabel_sim.html">Push Relabel Simulation</a></li>
+    </ul>
+</section>
+
+<section id="skills">
+    <h2>Technical Skills</h2>
+    <ul>
+        <li>Python</li>
+        <li>Dart & Flutter</li>
+        <li>TensorFlow (learning)</li>
+        <li>OpenCV & Image Processing</li>
+    </ul>
+</section>
+
+<section id="education">
+    <h2>Education</h2>
+    <ul>
+        <li>DAV Koylanagar (2009–2023)</li>
+        <li>Zero To Mastery (Udemy, 2023)</li>
+        <li>DataCamp Certifications</li>
+    </ul>
+</section>
+
+<section id="experience">
+    <h2>Work Experience</h2>
+    <p>
+        Earned ₹22,000 through freelancing in 10th grade by building an app.
+    </p>
+</section>
+
+<section id="projects">
+    <h2>Highlighted Project</h2>
+    <h3>Wheelchair for Quadriplegics — IIT Dhanbad Winner</h3>
+    <p>
+        Eye-gaze controlled wheelchair using OpenCV Haar cascades.
+    </p>
+
+    <button onclick="toggleDetails()">Read More</button>
+
+    <div id="moreDetails" class="hidden">
+        <p>
+            Built with Mayank Kumar to enable independence for paralyzed users.
+        </p>
+        <img src="iit_project.jpg" class="project-img" alt="IIT Project" />
+    </div>
+</section>
+
+<section id="interests">
+    <h2>Interests</h2>
+    <p>Pianist • Composer • Reading • Psychology</p>
+</section>
+
+<footer>
+    <p>© 2026 | Built with curiosity</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
