@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPMC Visual Learning Tool</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --sidebar: #ffffff;
+            --primary: #4f46e5;
+            --accent: #818cf8;
+            --text: #1e293b;
+            --code-bg: #1e1e1e;
+            --code-text: #d4d4d4;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout Columns */
+        .toolbox {
+            width: 200px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .workspace {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .register-map {
+            width: 250px;
+            background: var(--sidebar);
+            border-left: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        /* UI Elements */
+        h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 15px; }
+        
+        .tool-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Module Cards */
+        .module-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .module-header {
+            padding: 15px 20px;
+            background: #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .module-body {
+            padding: 20px;
+        }
+
+        .level-toggle {
+            font-size: 0.75rem;
+            background: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Level 1: Mad Libs */
+        .mad-libs {
+            font-family: 'Fira Code', monospace;
+            line-height: 1.8;
+            color: #64748b;
+        }
+
+        .mad-libs input {
+            border: none;
+            border-bottom: 2px solid var(--accent);
+            background: #f1f5f9;
+            padding: 2px 5px;
+            font-family: inherit;
+            color: var(--primary);
+            width: 80px;
+            text-align: center;
+            border-radius: 4px 4px 0 0;
+        }
+
+        /* Level 2: Sequencer */
+        .sequencer {
+            display: flex;
+            gap: 20px;
+        }
+
+        .instr-pool, .instr-stack {
+            flex: 1;
+            min-height: 100px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+        }
+
+        .instr-item {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .instr-item:hover { background: var(--primary); color: white; }
+
+        /* Register Sidebar */
+        .reg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .reg-box {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .reg-label { font-size: 0.7rem; color: #64748b; display: block; }
+        .reg-val { font-family: monospace; font-weight: bold; font-size: 1.1rem; }
+
+        /* Compilation Overlay */
+        #code-overlay {
+            position: fixed;
+            bottom: 20px;
+            right: 280px;
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 12px;
+            width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            font-family: 'Fira Code', monospace;
+            white-space: pre;
+            font-size: 0.85rem;
+        }
+
+        .btn-compile {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #94a3b8;
+            margin-top: 100px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbox">
+        <h2>Modules</h2>
+        <button class="tool-btn" onclick="addModule('LCD')">📟 LCD Display</button>
+        <button class="tool-btn" onclick="addModule('SERIAL')">📡 Serial Comm</button>
+        <button class="tool-btn" onclick="addModule('TIMER')">⏱️ Timer Delay</button>
+        <button class="tool-btn" onclick="addModule('ARRAY')">📊 Array Logic (8086)</button>
+    </div>
+
+    <div class="workspace" id="workspace">
+        <div class="empty-state">Select a module from the left to begin your <i>Programmierung</i> [programming].</div>
+    </div>
+
+    <div class="register-map">
+        <h2>Registers (8051)</h2>
+        <div class="reg-grid">
+            <div class="reg-box"><span class="reg-label">ACC</span><span class="reg-val" id="reg-acc">00H</span></div>
+            <div class="reg-box"><span class="reg-label">B</span><span class="reg-val">00H</span></div>
+            <div class="reg-box"><span class="reg-label">R0</span><span class="reg-val">00H</span></div>
+            <div class="reg-box"><span class="reg-label">R1</span><span class="reg-val">00H</span></div>
+            <div class="reg-box"><span class="reg-label">DPTR</span><span class="reg-val">0000H</span></div>
+            <div class="reg-box"><span class="reg-label">TMOD</span><span class="reg-val">00H</span></div>
+        </div>
+        <h2 style="margin-top: 30px;">I/O Ports</h2>
+        <div class="reg-grid">
+            <div class="reg-box"><span class="reg-label">P1</span><span class="reg-val">FFH</span></div>
+            <div class="reg-box"><span class="reg-label">P2</span><span class="reg-val">FFH</span></div>
+        </div>
+    </div>
+
+    <button class="btn-compile" onclick="compileCode()">Compile to Assembly</button>
+    <div id="code-overlay"></div>
+
+    <script>
+        let modules = [];
+        let moduleCounter = 0;
+
+        const templates = {
+            'LCD': {
+                title: 'LCD Interfacing',
+                level1: 'Initialize LCD on Port <input type="text" value="P1" id="p_port_VAL">. Set RS to <input type="text" value="P2.0" id="p_rs_VAL"> and Enable to <input type="text" value="P2.2" id="p_e_VAL">. Display text: <input type="text" value="VIT VELLORE" id="p_text_VAL">.',
+                instr: [
+                    { code: 'MOV A, #38H', desc: '8-bit, 2-line' },
+                    { code: 'ACALL COMNWRT', desc: 'Send Command' },
+                    { code: 'MOV A, #0EH', desc: 'Display ON' },
+                    { code: 'MOV A, #01H', desc: 'Clear Screen' },
+                    { code: 'ACALL DATAWRT', desc: 'Send Data' }
+                ]
+            },
+            'SERIAL': {
+                title: 'Serial Communication',
+                level1: 'Setup Serial at <input type="text" value="9600" id="p_baud_VAL"> baud using Timer <input type="text" value="1" id="p_timer_VAL">. Send character <input type="text" value="A" id="p_char_VAL">.',
+                instr: [
+                    { code: 'MOV TMOD, #20H', desc: 'T1 Mode 2' },
+                    { code: 'MOV TH1, #-3', desc: '9600 Baud' },
+                    { code: 'MOV SCON, #50H', desc: '8-bit UART' },
+                    { code: 'SETB TR1', desc: 'Start Timer' },
+                    { code: 'MOV SBUF, A', desc: 'Transmit' }
+                ]
+            }
+        };
+
+        function addModule(type) {
+            const id = moduleCounter++;
+            modules.push({
+                id: id,
+                type: type,
+                level: 1,
+                data: [], // For Level 2 sequence
+                expanded: true
+            });
+            render();
+        }
+
+        function toggleLevel(id) {
+            const mod = modules.find(m => m.id === id);
+            mod.level = mod.level === 1 ? 2 : 1;
+            render();
+        }
+
+        function addToSequence(modId, instrIdx) {
+            const mod = modules.find(m => m.id === modId);
+            const instr = templates[mod.type].instr[instrIdx];
+            mod.data.push(instr);
+            
+            // Update Register Visual (Mock behavior)
+            if(instr.code.includes('MOV A')) {
+                const val = instr.code.split('#')[1] || '??';
+                document.getElementById('reg-acc').innerText = val;
+            }
+            
+            render();
+        }
+
+        function removeFromSequence(modId, seqIdx) {
+            const mod = modules.find(m => m.id === modId);
+            mod.data.splice(seqIdx, 1);
+            render();
+        }
+
+        function render() {
+            const container = document.getElementById('workspace');
+            if (modules.length === 0) return;
+            
+            container.innerHTML = '';
+            modules.forEach(mod => {
+                const config = templates[mod.type] || { title: mod.type, level1: 'Template coming soon...', instr: [] };
+                
+                const card = document.createElement('div');
+                card.className = 'module-card';
+                
+                let content = '';
+                if (mod.level === 1) {
+                    content = `<div class="mad-libs">${config.level1}</div>`;
+                } else {
+                    content = `
+                        <div class="sequencer">
+                            <div class="instr-pool">
+                                <strong>Available</strong>
+                                ${config.instr.map((ins, idx) => `
+                                    <div class="instr-item" onclick="addToSequence(${mod.id}, ${idx})">
+                                        <span>${ins.code}</span>
+                                        <small style="color:#94a3b8">${ins.desc}</small>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="instr-stack">
+                                <strong>Your Sequence</strong>
+                                ${mod.data.map((ins, idx) => `
+                                    <div class="instr-item" onclick="removeFromSequence(${mod.id}, ${idx})" style="border-left: 4px solid var(--primary)">
+                                        <span>${ins.code}</span>
+                                        <span>×</span>
+                                    </div>
+                                `).join('')}
+                                ${mod.data.length === 0 ? '<p style="font-size:0.7rem; color:#94a3b8">Click instructions to add them</p>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="module-header">
+                        <strong>${config.title}</strong>
+                        <div class="level-toggle" onclick="toggleLevel(${mod.id})">
+                            Switch to Level ${mod.level === 1 ? '2' : '1'}
+                        </div>
+                    </div>
+                    <div class="module-body">
+                        ${content}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function compileCode() {
+            let asm = "; Generated MPMC Assembly Code\n";
+            asm += "ORG 0000H\n\n";
+
+            modules.forEach(mod => {
+                asm += `; --- ${mod.type} MODULE ---\n`;
+                if (mod.level === 1) {
+                    // Level 1 logic: extract inputs
+                    if (mod.type === 'LCD') {
+                        const port = document.getElementById('p_port_VAL')?.value || 'P1';
+                        const text = document.getElementById('p_text_VAL')?.value || 'HELLO';
+                        asm += `MOV A, #38H ; Init LCD\nACALL COMNWRT\n`;
+                        asm += `MOV DPTR, #MYDATA\n`;
+                        asm += `... (Looping ${text} on ${port})\n`;
+                    } else if (mod.type === 'SERIAL') {
+                        const baud = document.getElementById('p_baud_VAL')?.value || '9600';
+                        asm += `MOV TMOD, #20H\nMOV TH1, #-3 ; ${baud} baud\nSETB TR1\n`;
+                    }
+                } else {
+                    // Level 2 logic: use the sequence
+                    mod.data.forEach(ins => {
+                        asm += `${ins.code}\n`;
+                    });
+                }
+                asm += "\n";
+            });
+
+            asm += "END";
+
+            const overlay = document.getElementById('code-overlay');
+            overlay.innerText = asm;
+            overlay.style.display = 'block';
+            
+            // Scroll to bottom
+            overlay.scrollTop = overlay.scrollHeight;
+        }
+    </script>
+</body>
+</html>
